@@ -1,0 +1,191 @@
+用户自定义词表 (最高优先级)
+    ↓
+用户模式文件
+    ↓
+系统主词典
+    ↓
+系统次级词典 (最低优先级)
+
+
+
+// 1. 用户字典,设置
+tesseract.setTessVariable("user_words_file", "medical_terms.txt");
+tesseract.setTessVariable("user_patterns_file", "medical_patterns.txt");
+tesseract.setTessVariable("user_suffixes_file", "medical_patterns.txt");
+
+// 3. 启用所有词典
+tesseract.setTessVariable("tessedit_enable_dict_correction", "1");
+tesseract.setTessVariable("tessedit_use_primary_dictionary", "1");
+tesseract.setTessVariable("tessedit_use_secondary_dictionary", "1");
+
+// 4. 调整权重
+tesseract.setTessVariable("word_dict_score_weight", "0.8");
+tesseract.setTessVariable("language_model_ngram_order", "4");
+// 财务场景需要高精度
+tesseract.setTessVariable("lstm_choice_iterations", "4"); //多次确认
+tesseract.setTessVariable("beam_width", "20");  //  决定“每遍检查多少个候选项”
+tesseract.setTessVariable("word_dict_score_weight", "0.9");
+// 词典相关权重
+tesseract.setTessVariable("language_model_penalty_consistency", "0.1");  // 一致性惩罚
+tesseract.setTessVariable("language_model_penalty_script", "0.3");       // 脚本转换惩罚
+tesseract.setTessVariable("language_model_penalty_case", "0.2");         // 大小写惩罚
+tesseract.setTessVariable("language_model_penalty_font", "0.1");         // 字体一致性惩罚
+
+
+// 7. 其他优化参数
+tesseract.setTessVariable("tessedit_pageseg_mode", "6");
+tesseract.setTessVariable("tessedit_ocr_engine_mode", "1");
+tesseract.setTessVariable("user_defined_dpi", "300");
+调优口诀：
+截图设为 96：匹配屏幕像素。
+扫描设为 300：OCR 行业标准。
+小字适当调高：让神经网络看得更清。
+千万别留 0：自动检测往往是“人工智障”。
+
+tessedit_enable_dict_correction=1 (0=禁用,1=启用,验证码场景设0)
+user_words_file="" (自定义词典文件路径,如:/path/to/dict.txt)
+word_dict_score_weight=0.5 (词典权重,范围0.5-0.9,越高越依赖词典)
+tessedit_use_primary_dictionary=1 (0=禁用主词典,1=启用主词典)
+tessedit_use_secondary_dictionary=1 (0=禁用次级词典,1=启用次级词典)
+language_model_ngram_on=1 (0=禁用N-gram,1=启用,验证码场景设0)
+language_model_ngram_order=8 (N-gram阶数,推荐3-5,长文本可更高)
+
+
+必须配合使用的参数：
+// 1. 首先启用 N-gram 模型
+tesseract.setTessVariable("language_model_ngram_on", "1");
+
+// 2. 设置阶数  // 用于上下文判断,前几个字符,后几个字符,相当于模糊替换,矫正的数据是 词典
+tesseract.setTessVariable("language_model_ngram_order", "4");
+
+// 3. 启用词典纠正（两者协同工作）
+tesseract.setTessVariable("tessedit_enable_dict_correction", "1");
+
+// 4. 调整词典权重
+//这个参数决定了 "视觉识别结果" 和 "词典匹配结果" 之间的平衡：
+//最终评分 = 视觉特征评分 × (1 - word_dict_score_weight) + 词典匹配评分 × word_dict_score_weight
+简单理解：
+值越低 → 更相信图像识别的原始结果
+值越高 → 更相信词典中的词汇
+tesseract.setTessVariable("word_dict_score_weight", "0.8");
+
+可选优化参数：
+// N-gram 非匹配惩罚分（降低可减少误纠正）--不需要更改
+tesseract.setTessVariable("language_model_ngram_nonmatch_score", "-40");
+
+// N-gram 上下文窗口（通常与 order 保持一致）
+tesseract.setTessVariable("language_model_ngram_context_window", "4");
+
+// 最小概率阈值（保持默认即可）--不需要更改
+tesseract.setTessVariable("language_model_ngram_small_prob", "0.000001");
+
+
+// ===== 语言模型惩罚分（反向权重）=====
+// 非词典单词惩罚（值越大，越惩罚不在词典中的词）
+tesseract.setTessVariable("language_model_penalty_non_dict_word", "0.15");
+
+// 大小写不一致惩罚
+tesseract.setTessVariable("language_model_penalty_case", "0.2");
+
+// 字体不一致惩罚
+tesseract.setTessVariable("language_model_penalty_font", "0.1");
+
+// 脚本转换惩罚（中英文混排）
+tesseract.setTessVariable("language_model_penalty_script", "0.3");
+
+// 空格不一致惩罚
+tesseract.setTessVariable("language_model_penalty_space", "0.1");
+
+
+【自定义层级说明】
+1. 字级控制: tessedit_char_whitelist (限制识别范围，如只认数字)
+2. 词级增强: user_words_file (添加专业术语，提高权重)
+3. 句级规范: user_patterns_file (定义固定格式，如日期/编号)
+
+
+
+
+
+
+
+环境工具
+1:combine_tessdata 是 Tesseract OCR 官方提供的命令行工具
+    C:\Program Files\Tesseract-OCR\combine_tessdata.exe
+    # 查看版本信息 combine_tessdata --version
+
+    作用
+    打包 (Pack)：把上述分散的文件合并成一个 .traineddata 文件，供 Tesseract 识别时使用。
+    解包 (Unpack/Extract)：把一个 .traineddata 文件拆解成独立的组件.
+
+    # 从官方英文模型中提取所有组件到当前目录
+    combine_tessdata -e tessdata/eng.traineddata ./
+    # 将修改后的组件重新打包成一个新的模型
+    combine_tessdata -o output/my_custom_model.traineddata \
+      eng.config eng.unicharset my_new_word-dawg ...
+2:dawg2wordlist 同样来自 Tesseract OCR 官方工具集
+
+dawg2wordlist 的工作流程
+步骤 1: 从 eng.traineddata 中提取 unicharset
+        ↓
+步骤 2: 读取 word-dawg 中的字符 ID 序列
+        ↓
+步骤 3: 用 unicharset 将 ID 转换为真实字符
+        [68, 65, 72, 72, 75]  →  "hello"
+        [70, 65, 68]          →  "the"
+        ↓
+步骤 4: 输出到 my_wordlist.txt
+
+
+修改 DAWG 词典的标准工作流程
+# ========== 第 1 步：提取原始 DAWG ==========
+combine_tessdata -e tessdata/eng.traineddata word-dawg
+combine_tessdata -e tessdata/eng.traineddata unicharset
+
+# ========== 第 2 步：DAWG → 文本列表 ==========
+dawg2wordlist word-dawg tessdata/eng.traineddata output_words.txt
+
+# ========== 第 3 步：编辑文本文件（关键步骤）==========
+# 用任何文本编辑器打开 output_words.txt
+notepad output_words.txt
+
+# ========== 第 4 步：文本列表 → 新 DAWG ==========
+wordlist2dawg output_words.txt new-word-dawg unicharset
+执行命令后的目录结构：
+.
+├── output_words.txt      # 输入文件（不变）
+├── unicharset            # 输入文件（不变）
+└── new-word-dawg         # ← 唯一生成的新文件
+
+
+
+# ========== 第 5 步：验证新 DAWG（可选但推荐）==========
+dawg2wordlist new-word-dawg tessdata/eng.traineddata verify_words.txt
+# 对比 output_words.txt 和 verify_words.txt，确保没有丢失数据
+
+# ========== 第 6 步：合并到新模型 ==========
+combine_tessdata -o output/custom_model.traineddata \
+  eng.config my_model_checkpoint new-word-dawg \      # ← 使用你修改后的词典
+  freq-dawg punct-dawg number-dawg unicharset
+
+只需要更改 word-dawg（通用词）、freq-dawg（高频词）,其他的字典不要碰
+
+# 查看文件包含哪些组件
+combine_tessdata -l chi_sim.traineddata
+
+
+# 从官方 traineddata 中提取 LSTM 权重文件
+combine_tessdata -e chi_sim.traineddata chi_sim.lstm
+# 解包 traineddata 查看内部组件
+combine_tessdata -u chi_sim.traineddata output_dir/
+# Tesseract 3.x 时代的用法：合并各种组件文件
+combine_tessdata mylang.
+
+
+combine_tessdata -u chi_sim.traineddata ./
+
+# 执行后会生成多个文件，其中包含：
+# ├── chi_sim.lstm        ← 这就是你需要的文件
+# ├── chi_sim.unicharset
+# ├── chi_sim.word-dawg
+# └── ... 其他文件
+

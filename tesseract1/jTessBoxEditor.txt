@@ -1,0 +1,56 @@
+这是 jTessBoxEditorFX 工具的不同功能选项卡
+
+1. Trainer 选项卡
+功能：用于训练 Tesseract 识别新的字体或语言。通过提供标注好的训练数据来创建自定义的训练模型。
+对应命令行操作：
+# 生成训练数据
+tesseract system.exp0.tif system.exp0 --psm 6 batch.nochop makebox
+
+# 训练命令序列
+combine_tessdata -u . system.exp0
+tesseract system.exp0.tif system.exp0 nobatch box.train.stderr
+unicharset_extractor system.exp0.box
+mftraining -F font_properties -U unicharset -O system.unicharset system.exp0.tr
+cntraining system.exp0.tr
+
+
+
+2. Box Editor 选项卡
+功能：用于编辑和修正 Tesseract 生成的 box 文件。
+box 文件包含了每个字符的边界框坐标和对应的文本内容，是训练过程中的关键文件。
+
+# 生成 box 文件
+tesseract image.tif image --psm 6 batch.nochop makebox
+
+# 或使用 makebox 命令
+tesseract image.tif image makebox
+
+
+3. TIFF/Box Generator 选项卡
+功能：用于生成 TIFF 格式的图像文件和对应的 box 文件。可以设置字体、字号、抗锯齿等参数来创建训练样本。
+界面参数说明：
+Input：输入文件（通常是文本文件）
+Output：输出目录
+eng：语言代码
+system.exp0.tif：输出文件名
+System Regular 12pt：字体和字号
+Anti-Aliasing Noise：抗锯齿噪声级别
+Leading：行间距
+W/H：图像宽度和高度
+对应命令行操作：
+
+# 使用 text2image 工具生成训练数据
+text2image --text=input.txt --outputbase=system.exp0
+--fonts_dir=fonts/ --font="System Regular" --ptsize=12 --leading=12
+--width=2550 --height=3300
+
+总结
+这三个功能构成了完整的 Tesseract 训练流程：
+TIFF/Box Generator：生成训练样本（图像 + box 文件）
+Box Editor：编辑和校正 box 文件
+Trainer：使用校正后的数据训练模型
+您正在处理的是哪个具体的训练任务呢？我可以提供更详细的操作指导
+
+
+
+

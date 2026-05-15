@@ -1,0 +1,42 @@
+以后的训练识别,统一用这两个参数
+引擎模式    --oem 1
+页面分割模式  --psm 7
+-l chi_sim.lstm(只能是训练)  --traineddata chi_sim.traineddata(识别)
+tesseract <输入图片> <输出前缀> [-l 语言] [--psm 页面分割模式] [--oem 引擎模式] [-c 配置参数] lstm.train
+
+tesseract img.png stdout -l chi_sim --psm 7 --oem 1
+
+1.1:tesseract image.png rabbit -l chi_sim --oem 1 --psm 7 batch.nochop makebox(参数:image1.png + image1.gt.txt)
+# 19. 使用自定义字典生成 box( 字典不影响分割,只是矫正,填不填加词典无所谓)
+# 参数说明：
+#   - -c load_system_dawg=0: 不加载系统词典
+#   - -c load_freq_dawg=0: 不加载频率词典
+#   - -c user_words_file=user-words.txt: 使用用户自定义词典
+
+
+# 作用  -c tessedit_enable_dict_correction=0: 禁用字典纠正
+# 作用：过滤掉不需要的特殊字符 -c tessedit_char_blacklist='!@#$%^&*:'
+# 解决：指定正确的 DPI  -c user_defined_dpi=300
+# 使用自定义词典或白名单 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyz0123456789
+如果指定 -c user_defined_dpi=300
+加载系统词典 load_system_dawg
+
+
+
+0   OSD only    仅方向和脚本检测
+1   Auto + OSD  自动分页 + OSD
+3   Auto    完全自动分页（默认）
+6   Uniform block   假设单个统一的文本块 ⭐ 最常用
+7   Single line 单行文本
+8   Single word 单个单词
+10  Single character    单个字符
+13  Raw line    原始行（保留布局）
+
+
+如果用于识别，两种方式都可以：
+# 方式 1：使用 -l（推荐）
+tesseract image.png rabbit -l chi_sim --psm 7 --oem 1
+# 方式 2：使用 --traineddata（同样有效）
+tesseract image.png rabbit --traineddata chi_sim.traineddata --psm 7 --oem 1
+
+

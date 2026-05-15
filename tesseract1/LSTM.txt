@@ -1,0 +1,61 @@
+下载预训练文件
+https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_sim.traineddata
+https://github.com/tesseract-ocr/tessdata_best/raw/main/chi_sim_vert.traineddata
+
+1:生成 .box 两种方式
+    1.1: 图片生成 .box
+        tesseract img.png rabbit -l chi_sim --psm 7 --oem 1 batch.nochop makebox
+        输入: img.png（你的图片） 输出: rabbit.box（标注文件） 不会生成 .tif 文件，而是直接生成 .box 文件
+
+    1.2: 通过 .tif 生成 .box (推荐)
+        magick img.png img.tif (需要安装 https://imagemagick.org/script/download.php#windows)
+        tesseract img.tif rabbit -l chi_sim --psm 7 --oem 1 batch.nochop makebox
+
+2: 使用jTessBoxEditorFX 导入 img.tif ,会自动加载 img.box文件
+    所有操作都在 Box Editor 下面的选卡
+        标签页Box View  点击图片上面的标注框,更改字符内容,保存,
+        标签页Box Data  查看,是否以正确更改
+
+
+3:采用lstm.train 参数必有 img.tif,img.box,img.git.txt 三个文件
+         tesseract img.tif img -l chi_sim --psm 7 --oem 1 lstm.train
+
+4:提取所有的组件(当前目录下生成   lstmf:学生的练习题和答案  lstm:学生脑子里学到的知识和逻辑)
+    combine_tessdata -u chi_sim.traineddata chi_sim.(这个是前缀名称)
+
+
+3:迁移学习模式（推荐 --max_iterations 3000  # 10 × 100 = 1000）
+lstmtraining  --continue_from chi_sim.lstm  --traineddata chi_sim.traineddata --max_iterations 100 --model_output img --train_listfile training_files.txt
+3.1:主要参数说明
+    1. --debug_interval：调试信息输出间隔，0=不输出，100=每100次迭代输出，-1=结束时输出
+    2. --traineddata：预训练数据文件，如tessdata/chi_sim.traineddata，作为基础语言模型
+    3. --model_output：模型输出路径，指定输出模型的前缀名，如rabbit
+    4. --train_listfile：训练文件列表，包含.lstmf文件路径的文本文件
+    5. --eval_listfile：评估文件列表
+    6. --max_iterations：最大迭代次数，如5000，控制训练的最大步数
+    7. --learning_rate：学习率，默认0.001，控制模型更新速度
+    8. --continue_from：继续训练的起点，chi_sim.lstm，从已有模型继续训练
+产生的文件
+    x_checkpoint(最新训练状态,LSTM 网络权重,优化器状态,优化器状态,错误率统计),
+    x_{N}_checkpoint(特定迭代次数)
+
+4:评估模型性能
+ lstmeval  --model rabbit_checkpoint  --traineddata chi_sim.traineddata  --eval_listfile eval_files.txt
+
+
+5:生成模型的两种方式
+    5.1:我只需要LSTM神经网络来做视觉识别 (推荐使用它)
+        停止训练并生成最终模型
+        lstmtraining --stop_training --convert_to_int --traineddata chi_sim.traineddata  --continue_from img_checkpoint  --model_output img.traineddata
+
+    5.2: 我需要LSTM + 语言字典来提高识别准确率
+        将checkpoint(不包含字典) 合并到 chi_sim.traineddata ,生成完成的模型
+        combine_tessdata -o rabbit.traineddata  chi_sim.traineddata  rabbit_best_checkpoint word-dawg  unicharset
+
+6:测试新模型(--tessdata-dir output/ 指定模型的目录 )
+tesseract img.png stdout -l img --psm 7 --oem 1
+
+
+
+
+
